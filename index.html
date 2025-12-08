@@ -6,14 +6,13 @@
     <title>KANGs旅遊APP</title>
     
     <!-- PWA 設定 -->
-    <!-- 1. 修改 Manifest 中的圖示為大阪城 -->
+    <!-- ⚠️ 這裡就是設定 APP ICON 的地方 (下方有教學) -->
     <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiS0FOR3Pml4XpgYpBUFAiLCJzaG9ydF9uYW1lIjoiS0FOR3MiLCJzdGFydF91cmwiOiIuIiwiZGlzcGxheSI6InN0YW5kYWxvbmUiLCJiYWNrZ3JvdW5kX2NvbG9yIjoiI2Y2ZWE4YyIsInRoZW1lX2NvbG9yIjoiIzQ5MjU0MCIsImljb25zIjpbeyJzcmMiOiJodHRwczovL2Nkbi1pY29ucy1wbmcuZmxhdGljb24uY29tLzUxMi8yOTIvMjkyMzcwLnBuZyIsInNpemVzIjoiMTkyeDE5MiIsInR5cGUiOiJpbWFnZS9wbmcifV19" id="my-manifest">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <!-- 2. 修改狀態列樣式為 default，避免被瀏海擋住 -->
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="theme-color" content="#f6ea8c">
     
-    <!-- 3. 新增 Apple Touch Icon (iPhone 桌面圖示專用) -->
+    <!-- iPhone 桌面圖示 (這裡也可以改) -->
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/292/292370.png">
     
     <!-- Tailwind CSS -->
@@ -79,7 +78,7 @@
         }
     </style>
     
-    <!-- PWA Manifest Script -->
+    <!-- PWA Manifest Script (ICON 設定區) -->
     <script>
         const manifest = {
             "name": "大阪冒險2025",
@@ -88,6 +87,7 @@
             "display": "standalone",
             "background_color": "#f6ea8c",
             "theme_color": "#492540",
+            // 👇👇👇 這裡就是改 ICON 的地方 👇👇👇
             "icons": [{ "src": "https://cdn-icons-png.flaticon.com/512/292/292370.png", "sizes": "192x192", "type": "image/png" }]
         };
         document.querySelector('#my-manifest').setAttribute('href', 'data:application/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(manifest)));
@@ -266,9 +266,6 @@
                 <div className="bg-[#00A3E0] text-white p-3 rounded-xl border-2 border-[#492540] shadow-sm flex items-center justify-between mb-4 relative">
                     <div className="flex items-center gap-2"><CloudSun size={20}/><div><div className="font-black text-lg">{current.temperature}°C</div><div className="text-[10px] font-bold opacity-90">大阪現在</div></div></div>
                     <div className="text-right"><div className="text-xs font-bold">最高 {weather.daily.temperature_2m_max[0]}°</div><div className="text-xs opacity-80">最低 {weather.daily.temperature_2m_min[0]}°</div></div>
-                    
-                    {/* ✅ 天氣預報連結 (已移至設定內) */}
-                    <a href="https://tenki.jp/forecast/6/30/6200/27100/" target="_blank" className="absolute bottom-2 right-2 bg-white/20 hover:bg-white/30 text-white text-[10px] px-2 py-1 rounded flex items-center gap-1 transition-colors"><ExternalLink size={10}/> 預報</a>
                 </div>
             );
         };
