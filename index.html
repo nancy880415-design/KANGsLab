@@ -48,7 +48,7 @@
             pointer-events: none;
         }
         .debug-toggle {
-            background: rgba(0, 0, 0, 0.6); color: rgba(255,255,255,0.8);
+            background: rgba(0, 0, 0, 0.4); color: rgba(255,255,255,0.8);
             width: 36px; height: 36px; border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
             cursor: pointer; pointer-events: auto;
@@ -82,13 +82,13 @@
           Minus, FileText, Link as LinkIcon, Briefcase, Wallet,
           Clock, Tag, Save, Cloud, Loader, Check, Users, LogOut, UserCircle,
           Bug, Terminal, User, Send, Map as MapIcon, WifiOff,
-          MessageCircle, Bell, ExternalLink, Siren 
+          MessageCircle, Bell, ExternalLink, Siren, CalendarDays
         } from 'lucide-react';
 
-        // --- 🔥 Firebase Imports (No Storage) ---
+        // --- 🔥 Firebase Imports (Removed Storage) ---
         import { initializeApp } from "firebase/app";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "firebase/auth";
-        import { getDatabase, ref, set, onValue, push } from "firebase/database";
+        import { getDatabase, ref, set, onValue, push, remove, update } from "firebase/database";
 
         // --- 🔧 Config ---
         const firebaseConfig = {
@@ -258,8 +258,10 @@
                 const unsub = onValue(msgRef, (snap) => { 
                     const data = snap.val(); 
                     if (data) {
-                        setMsgs(Object.values(data));
+                        setMsgs(Object.entries(data).map(([key, val]) => ({id: key, ...val})));
                         setTimeout(() => endRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
+                    } else {
+                        setMsgs([]);
                     }
                 });
                 return () => unsub();
@@ -269,13 +271,26 @@
                 if (!txt.trim() || !tripId) return;
                 if (!myIdentity) { alert("請先設定您的身份！"); setShowSyncModal(true); return; }
                 const msgRef = ref(db, `trips/${tripId}/messages`);
-                set(push(msgRef), { 
+                push(msgRef, { 
                     user: myIdentity, 
                     text: txt, 
                     time: new Date().toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit'}),
                     tag: tagDay // Store tag
                 });
                 setTxt("");
+            };
+
+            const deleteMsg = (msgId) => {
+                if (confirm("確定刪除此留言？")) {
+                    remove(ref(db, `trips/${tripId}/messages/${msgId}`));
+                }
+            };
+            
+            const editMsg = (msgId, oldText) => {
+                const newText = prompt("修改留言：", oldText);
+                if (newText && newText !== oldText) {
+                    update(ref(db, `trips/${tripId}/messages/${msgId}`), { text: newText });
+                }
             };
 
             if (!tripId) return (
@@ -286,28 +301,32 @@
             );
 
             return (
-                <div className="flex flex-col h-full bg-white rounded-xl border-2 border-[#492540] overflow-hidden mb-4 shadow-md" style={{maxHeight: '400px'}}>
-                    {/* Header */}
+                <div className="flex flex-col h-full bg-white rounded-xl border-2 border-[#492540] overflow-hidden mb-4 shadow-md" style={{maxHeight: '350px'}}>
                     <div className="p-3 bg-[#f6ea8c] border-b-2 border-[#492540] flex justify-between items-center shrink-0">
                         <h2 className="font-black text-sm text-[#492540] flex items-center gap-2"><MessageCircle size={16}/> 留言板 & 公告</h2>
                     </div>
                     
-                    {/* Messages Area */}
                     <div className="flex-1 overflow-y-auto p-3 space-y-3 bg-gray-50">
                         {msgs.length === 0 ? (
                             <div className="text-center text-gray-400 py-6 opacity-50 text-xs">
                                 <Users size={24} className="mx-auto mb-1"/>
                                 <p>還沒有留言，來搶頭香！</p>
                             </div>
-                        ) : msgs.map((m, i) => (
-                            <div key={i} className={`flex flex-col ${m.user === myIdentity ? 'items-end' : 'items-start'}`}>
+                        ) : msgs.map((m) => (
+                            <div key={m.id} className={`flex flex-col ${m.user === myIdentity ? 'items-end' : 'items-start'}`}>
                                 <div className="flex items-end gap-1 mb-1 px-1">
                                     <span className="text-[10px] text-gray-500 font-bold">{m.user}</span>
                                     <span className="text-[8px] text-gray-400">{m.time}</span>
+                                    {(myIdentity) && (
+                                        <div className="flex gap-1 ml-1 opacity-50">
+                                            <button onClick={() => editMsg(m.id, m.text)} className="text-[8px] text-blue-500">✎</button>
+                                            <button onClick={() => deleteMsg(m.id)} className="text-[8px] text-red-500">✕</button>
+                                        </div>
+                                    )}
                                 </div>
                                 {m.tag && m.tag !== '一般' ? (
                                     // Announcement Style
-                                    <div className="bg-[#fff9c4] border-2 border-[#fbc02d] text-[#492540] p-2 rounded-xl shadow-sm max-w-[90%] relative mb-1">
+                                    <div className="bg-[#fff9c4] border-2 border-[#fbc02d] text-[#492540] p-2 rounded-xl shadow-sm max-w-[95%] relative mb-1">
                                         <div className="absolute -top-2.5 left-2 bg-[#fbc02d] text-white text-[9px] px-2 py-0.5 rounded-full font-bold shadow-sm">📢 {m.tag} 公告</div>
                                         <div className="mt-1 font-bold text-sm">{m.text}</div>
                                     </div>
@@ -322,7 +341,6 @@
                         <div ref={endRef} />
                     </div>
 
-                    {/* Input Area */}
                     <div className="p-2 bg-white border-t-2 border-[#492540] shrink-0">
                         <div className="flex items-center gap-2 mb-2">
                              <select 
@@ -508,18 +526,9 @@
           const handleJoinTrip = () => {
             if (syncInput.trim()) {
               const code = syncInput.trim().toUpperCase();
-              
-              if (code === tripId) {
-                  alert("您已在此旅程中！");
-                  return;
-              }
-
-              if (confirm(`加入旅程「${code}」？`)) {
-                  // 強制清空目前資料，避免視覺殘留
-                  setItinerary([]);
-                  setShoppingList([]);
-                  setExpenses([]);
-                  
+              if (code === tripId) { alert("您已在此旅程中！"); return; } 
+              if (confirm(`加入旅程「${code}」？\n注意：這將會切換到共享資料庫。`)) {
+                  setItinerary([]); setShoppingList([]); setExpenses([]);
                   setIsDbLoaded(false); setTripId(code); localStorage.setItem('osaka_trip_id', code); setShowSyncModal(false);
                   alert(`成功加入旅程：${code}\n資料正在同步中...`);
               }
@@ -560,7 +569,6 @@
           const incrementItem = (id, d) => setShoppingList(p => p.map(i => i.id === id ? { ...i, count: Math.max(1, (i.count||1)+d) } : i));
           const addToShoppingList = (item) => setShoppingList(p => [...p, { id: `rec-${Date.now()}`, name: item.name, checked: false, note: item.desc, count: 1 }]);
           
-          // Add Shopping Item
           const handleAddNewShoppingItem = async (e) => { 
               e.preventDefault(); 
               if(!newShopItem.name) return; 
@@ -599,6 +607,11 @@
                   <div className="flex flex-col items-end gap-1">
                     <button onClick={() => setShowSyncModal(true)} className={`text-white px-3 py-1 rounded-full border-2 border-[#492540] shadow-sm text-xs font-bold flex items-center gap-1 active:translate-y-1 ${tripId ? 'bg-[#c03546]' : 'bg-[#492540]'}`}>{tripId ? <Users size={14}/> : <Cloud size={14}/>} {tripId ? ' 設定' : ' 設定'}</button>
                     {!isOnline && <div className="bg-red-500 text-white text-[10px] px-2 py-1 rounded-full flex items-center gap-1"><WifiOff size={10}/> 離線模式</div>}
+                    
+                    {/* ✅ 天氣預報小按鈕 (在設定按鈕下方) */}
+                    <a href="https://tenki.jp/forecast/6/30/6200/27100/" target="_blank" className="bg-[#00A3E0] text-white px-3 py-1 rounded-full border-2 border-[#492540] shadow-sm text-xs font-bold flex items-center gap-1 active:translate-y-1">
+                      <CalendarDays size={14} /> 預報
+                    </a>
                   </div>
                 </div>
                 <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">{badges.map(b => <Badge key={b.id} {...b} unlocked={unlockedBadges.some(ub => ub.id === b.id)} />)}</div>
@@ -607,7 +620,7 @@
               <main className="flex-1 overflow-y-auto relative overscroll-contain">
                 <div className="p-4 pb-48 space-y-4 min-h-full">
                   {activeTab === 'QUESTS' && <WeatherWidget />}
-                  {/* --- 📢 公告欄回歸首頁 --- */}
+                  {/* --- 📢 留言板回歸首頁 --- */}
                   {activeTab === 'QUESTS' && <ChatRoom tripId={tripId} user={user} myIdentity={myIdentity} setMyIdentity={setMyIdentity} setShowSyncModal={setShowSyncModal} />}
                   
                   {activeTab === 'QUESTS' && dayData && (
@@ -687,7 +700,7 @@
               {addCheckModal.show && (<div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center sm:p-4"><form onSubmit={addChecklistItem} className="bg-white rounded-t-xl sm:rounded-xl border-2 border-[#492540] p-5 w-full max-w-md shadow-xl animate-slide-up"><div className="flex justify-between items-center mb-4"><h3 className="font-black text-lg text-[#c03546]">新增檢查項目</h3><button type="button" onClick={() => setAddCheckModal({show:false})}><X/></button></div><div className="space-y-3"><div><label className="text-xs font-bold text-gray-500">項目名稱</label><input name="text" placeholder="e.g. 轉接頭" className="w-full p-3 border-2 border-gray-300 rounded-xl font-bold bg-white text-black" autoFocus required/></div></div><button type="submit" className="w-full bg-[#c03546] text-white py-3 rounded-lg font-bold mt-4 shadow-[2px_2px_0px_0px_#000] active:translate-y-[1px] active:shadow-none">確認新增</button></form></div>)}
               {addExpenseModal.show && (<div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center sm:p-4"><form onSubmit={handleAddExpense} className="bg-white rounded-t-xl sm:rounded-xl border-2 border-[#492540] p-5 w-full max-w-md shadow-xl animate-slide-up"><div className="flex justify-between items-center mb-4"><h3 className="font-black text-lg text-[#00A3E0]">新增消費紀錄</h3><button type="button" onClick={() => setAddExpenseModal({show:false})}><X/></button></div><div className="space-y-3"><div><label className="text-xs font-bold text-gray-500">項目</label><input name="title" value={newExpense.title} onChange={e=>setNewExpense({...newExpense, title: e.target.value})} placeholder="e.g. 章魚燒" className="w-full p-3 border-2 border-gray-300 rounded-xl font-bold bg-white text-black" autoFocus required/></div><div><label className="text-xs font-bold text-gray-500">金額 (日幣)</label><input name="amount" value={newExpense.amount} onChange={e=>setNewExpense({...newExpense, amount: e.target.value})} type="number" placeholder="e.g. 800" className="w-full p-3 border-2 border-gray-300 rounded-xl font-bold bg-white text-black" required/></div><div><label className="text-xs font-bold text-gray-500">付款人</label><select name="payer" value={newExpense.payer} onChange={e=>setNewExpense({...newExpense, payer: e.target.value})} className="w-full p-3 border-2 border-gray-300 rounded-xl font-bold bg-white text-black">{PAYERS.map(p => <option key={p} value={p}>{p}</option>)}</select></div></div><button type="submit" className="w-full bg-[#00A3E0] text-white py-3 rounded-lg font-bold mt-4 shadow-[2px_2px_0px_0px_#000] active:translate-y-[1px] active:shadow-none flex justify-center">記帳</button></form></div>)}
               {showSyncModal && (<div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"><div className="bg-white rounded-xl border-2 border-[#492540] p-5 w-full max-w-xs shadow-xl animate-bounce-slight"><h3 className="font-black text-lg mb-2 text-[#00A3E0] flex items-center gap-2"><Users size={20}/> 旅程設定</h3><div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200"><label className="text-xs font-bold text-gray-500 mb-1 block flex items-center gap-1"><User size={12}/> 您是哪位成員？</label><select className="w-full p-2 border border-gray-300 rounded font-bold text-black text-sm" value={myIdentity} onChange={(e) => handleSetIdentity(e.target.value)}><option value="">請選擇...</option>{PAYERS.map(p => <option key={p} value={p}>{p}</option>)}</select></div><hr className="my-4 border-gray-200"/><p className="text-sm text-gray-600 mb-2 font-bold">旅程同步代碼</p>{tripId ? (<div className="space-y-3"><div className="bg-gray-100 p-2 rounded text-center font-mono font-bold text-xl tracking-widest border border-gray-300">{tripId}</div><button onClick={handleLeaveTrip} className="w-full py-2 rounded font-bold bg-[#c03546] text-white flex items-center justify-center gap-1"><LogOut size={16}/> 退出同步模式</button><button onClick={() => setShowSyncModal(false)} className="w-full py-2 rounded font-bold bg-gray-200 text-gray-600">關閉</button></div>) : (<div className="space-y-3"><input type="text" placeholder="輸入代碼 (e.g. OSAKA2025)" className="w-full p-2 border-2 border-gray-300 rounded font-bold text-center uppercase text-black" value={syncInput} onChange={e => setSyncInput(e.target.value.toUpperCase())}/><button onClick={handleJoinTrip} className="w-full py-2 rounded font-bold bg-[#00A3E0] text-white">加入旅程</button><button onClick={() => setShowSyncModal(false)} className="w-full py-2 rounded font-bold bg-gray-200 text-gray-600">取消</button></div>)}
-              {/* ✅ 天氣預報連結 (移至設定內) */}
+              {/* ✅ 天氣預報連結 (已移至設定內) */}
               <div className="mt-4 pt-4 border-t border-gray-200">
                   <a href="https://tenki.jp/forecast/6/30/6200/27100/" target="_blank" className="w-full py-2 bg-blue-500 text-white rounded-lg font-bold text-xs flex items-center justify-center gap-2 hover:bg-blue-600 transition-colors"><ExternalLink size={14}/> 查看大阪未來天氣預報</a>
               </div>
@@ -696,7 +709,7 @@
               
               {/* Other Modals... */}
               {deleteModal.show && (<div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"><div className="bg-white rounded-xl border-2 border-[#492540] p-5 w-full max-w-xs shadow-xl animate-bounce-slight"><h3 className="font-black text-lg mb-2 text-[#c03546]">確認刪除？</h3><div className="flex gap-2"><button onClick={() => setDeleteModal({show:false})} className="flex-1 py-2 rounded font-bold bg-gray-200">取消</button><button onClick={handleConfirmDelete} className="flex-1 py-2 rounded font-bold bg-[#c03546] text-white">刪除</button></div></div></div>)}
-              {editModal.show && (<div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center sm:p-4"><form onSubmit={handleSaveEdit} className="bg-white rounded-t-xl sm:rounded-xl border-2 border-[#492540] p-5 w-full max-w-md shadow-xl animate-slide-up"><div className="flex justify-between items-center mb-4"><h3 className="font-black text-lg">編輯行程</h3><button type="button" onClick={() => setEditModal({show:false})}><X/></button></div><div className="space-y-3"><div><label className="text-xs font-bold text-gray-500">時間</label><input name="time" defaultValue={editModal.activity.time} className="w-full p-2 border border-gray-300 rounded font-bold bg-white text-black"/></div><div><label className="text-xs font-bold text-gray-500">標題</label><input name="title" defaultValue={editModal.activity.title} className="w-full p-2 border border-gray-300 rounded font-bold bg-white text-black"/></div><div><label className="text-xs font-bold text-gray-500">備註</label><textarea name="note" defaultValue={editModal.activity.note} className="w-full p-2 border border-gray-300 rounded text-sm h-20 bg-white text-black"/></div></div><button type="submit" className="w-full bg-[#492540] text-white py-3 rounded-lg font-bold mt-4">儲存變更</button></form></div>)}
+              {editModal.show && (<div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center sm:p-4"><form onSubmit={handleSaveEdit} className="bg-white rounded-t-xl sm:rounded-xl border-2 border-[#492540] p-5 w-full max-w-md shadow-xl animate-slide-up"><div className="flex justify-between items-center mb-4"><h3 className="font-black text-lg">編輯行程</h3><button type="button" onClick={() => setEditModal({show:false})}><X/></button></div><div className="space-y-3"><div><label className="text-xs font-bold text-gray-500">時間</label><input name="time" defaultValue={editModal.activity.time} className="w-full p-2 border border-gray-300 rounded font-bold bg-white text-black"/></div><div><label className="text-xs font-bold text-gray-500">標題</label><input name="title" defaultValue={editModal.activity.title} className="w-full p-2 border border-gray-300 rounded font-bold bg-white text-black"/></div><div><label className="text-xs font-bold text-gray-500">備註</label><textarea name="note" defaultValue={editModal.activity.note} className="w-full p-2 border border-gray-300 rounded text-sm h-20 bg-white text-black"/></div></div><button type="submit" className="w-full bg-[#00A3E0] text-white py-3 rounded-lg font-bold mt-4">儲存變更</button></form></div>)}
               {addModal.show && (<div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center sm:p-4"><form onSubmit={handleAddActivity} className="bg-white rounded-t-xl sm:rounded-xl border-2 border-[#492540] p-5 w-full max-w-md shadow-xl animate-slide-up"><div className="flex justify-between items-center mb-4"><h3 className="font-black text-lg text-[#c03546]">新增行程</h3><button type="button" onClick={() => setAddModal({show:false})}><X/></button></div><div className="space-y-3"><div><label className="text-xs font-bold text-gray-500">時間</label><input name="time" placeholder="00:00" className="w-full p-2 border border-gray-300 rounded font-bold bg-white text-black" required/></div><div><label className="text-xs font-bold text-gray-500">標題</label><input name="title" className="w-full p-2 border border-gray-300 rounded font-bold bg-white text-black" required/></div><div><label className="text-xs font-bold text-gray-500">地址 (Google Maps)</label><input name="address" className="w-full p-2 border border-gray-300 rounded font-bold bg-white text-black"/></div></div><button type="submit" className="w-full bg-[#c03546] text-white py-3 rounded-lg font-bold mt-4">確認新增</button></form></div>)}
               {addRecModal.show && (<div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center sm:p-4"><form onSubmit={handleAddRec} className="bg-white rounded-t-xl sm:rounded-xl border-2 border-[#492540] p-5 w-full max-w-md shadow-xl animate-slide-up"><div className="flex justify-between items-center mb-4"><h3 className="font-black text-lg text-[#00A3E0]">新增推薦</h3><button type="button" onClick={() => setAddRecModal({show:false})}><X/></button></div><div className="space-y-3"><div><label className="text-xs font-bold text-gray-500">區域</label><select name="areaKey" className="w-full p-2 border border-gray-300 rounded font-bold bg-white text-black">{INITIAL_RECOMMENDATIONS.map(r => <option key={r.areaKey} value={r.areaKey}>{r.areaName}</option>)}</select></div><div><label className="text-xs font-bold text-gray-500">名稱</label><input name="name" className="w-full p-2 border border-gray-300 rounded font-bold bg-white text-black" required/></div><div><label className="text-xs font-bold text-gray-500">類型</label><select name="tag" className="w-full p-2 border border-gray-300 rounded font-bold bg-white text-black"><option value="美食">美食</option><option value="購物">購物</option><option value="藥妝">藥妝</option><option value="伴手禮">伴手禮</option></select></div><div><label className="text-xs font-bold text-gray-500">描述</label><input name="desc" className="w-full p-2 border border-gray-300 rounded font-bold bg-white text-black"/></div><div><label className="text-xs font-bold text-gray-500">營業時間</label><input name="hours" className="w-full p-2 border border-gray-300 rounded font-bold bg-white text-black"/></div></div><button type="submit" className="w-full bg-[#00A3E0] text-white py-3 rounded-lg font-bold mt-4">加入</button></form></div>)}
               {editRecModal.show && (<div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center sm:p-4"><form onSubmit={handleSaveRecEdit} className="bg-white rounded-t-xl sm:rounded-xl border-2 border-[#492540] p-5 w-full max-w-md shadow-xl animate-slide-up"><div className="flex justify-between items-center mb-4"><h3 className="font-black text-lg text-[#00A3E0]">編輯推薦</h3><button type="button" onClick={() => setEditRecModal({show:false, areaKey:null, item:null})}><X/></button></div><div className="space-y-3"><div><label className="text-xs font-bold text-gray-500">名稱</label><input name="name" defaultValue={editRecModal.item.name} className="w-full p-2 border border-gray-300 rounded font-bold bg-white text-black" required/></div><div><label className="text-xs font-bold text-gray-500">類型</label><select name="tag" defaultValue={editRecModal.item.tag} className="w-full p-2 border border-gray-300 rounded font-bold bg-white text-black"><option value="美食">美食</option><option value="購物">購物</option><option value="藥妝">藥妝</option><option value="伴手禮">伴手禮</option></select></div><div><label className="text-xs font-bold text-gray-500">描述</label><input name="desc" defaultValue={editRecModal.item.desc} className="w-full p-2 border border-gray-300 rounded font-bold bg-white text-black"/></div><div><label className="text-xs font-bold text-gray-500">營業時間</label><input name="hours" defaultValue={editRecModal.item.hours} className="w-full p-2 border border-gray-300 rounded font-bold bg-white text-black"/></div></div><button type="submit" className="w-full bg-[#00A3E0] text-white py-3 rounded-lg font-bold mt-4">儲存</button></form></div>)}
