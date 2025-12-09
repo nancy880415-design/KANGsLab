@@ -6,14 +6,31 @@
     <title>KANGs旅遊APP</title>
     
     <!-- PWA 設定 -->
-    <!-- ⚠️ 這裡就是設定 APP ICON 的地方 (下方有教學) -->
-    <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiS0FOR3Pml4XpgYpBUFAiLCJzaG9ydF9uYW1lIjoiS0FOR3MiLCJzdGFydF91cmwiOiIuIiwiZGlzcGxheSI6InN0YW5kYWxvbmUiLCJiYWNrZ3JvdW5kX2NvbG9yIjoiI2Y2ZWE4YyIsInRoZW1lX2NvbG9yIjoiIzQ5MjU0MCIsImljb25zIjpbeyJzcmMiOiJodHRwczovL2Nkbi1pY29ucy1wbmcuZmxhdGljb24uY29tLzUxMi8yOTIvMjkyMzcwLnBuZyIsInNpemVzIjoiMTkyeDE5MiIsInR5cGUiOiJpbWFnZS9wbmcifV19" id="my-manifest">
+    <script>
+        const manifest = {
+            "name": "KANGs旅遊APP",
+            "short_name": "KANGs旅遊",
+            "start_url": ".",
+            "display": "standalone",
+            "background_color": "#f6ea8c",
+            "theme_color": "#492540",
+            "icons": [{ 
+                "src": "https://cdn-icons-png.flaticon.com/512/292/292370.png", 
+                "sizes": "800x800", 
+                "type": "image/png" 
+            }]
+        };
+        const link = document.createElement('link');
+        link.rel = 'manifest';
+        link.href = 'data:application/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(manifest));
+        document.head.appendChild(link);
+    </script>
+
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="theme-color" content="#f6ea8c">
     
-    <!-- iPhone 桌面圖示 (這裡也可以改) -->
-    <link rel="apple-touch-icon" href=" https://raw.githubusercontent.com/nancy880415-design/KANGsLab/79be4f302288c96871e6e97b98af1359459b0725/ICON.png">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/292/292370.png">
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -77,21 +94,6 @@
           margin: 0; 
         }
     </style>
-    
-    <!-- PWA Manifest Script (ICON 設定區) -->
-    <script>
-        const manifest = {
-            "name": "大阪冒險2025",
-            "short_name": "大阪冒險",
-            "start_url": ".",
-            "display": "standalone",
-            "background_color": "#f6ea8c",
-            "theme_color": "#492540",
-            // 👇👇👇 這裡就是改 ICON 的地方 👇👇👇
-            "icons": [{ "src": " https://raw.githubusercontent.com/nancy880415-design/KANGsLab/79be4f302288c96871e6e97b98af1359459b0725/ICON.png", "sizes": "192x192", "type": "image/png" }]
-        };
-        document.querySelector('#my-manifest').setAttribute('href', 'data:application/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(manifest)));
-    </script>
 </head>
 <body>
     <div id="root"></div>
@@ -110,7 +112,7 @@
           MessageCircle, Bell, ExternalLink, Siren, CalendarDays
         } from 'lucide-react';
 
-        // --- 🔥 Firebase Imports (Removed Storage) ---
+        // --- 🔥 Firebase Imports (No Storage) ---
         import { initializeApp } from "firebase/app";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "firebase/auth";
         import { getDatabase, ref, set, onValue, push, remove, update } from "firebase/database";
@@ -418,13 +420,13 @@
           const [nightViewChoice, setNightViewChoice] = useState('A'); 
           const [isOnline, setIsOnline] = useState(navigator.onLine);
 
-          // State
+          // State (⚠️ 這裡修改了初始值為 [] 空陣列，防止預設資料覆蓋)
           const [itinerary, setItinerary] = useState(INITIAL_ITINERARY);
           const [completedTasks, setCompletedTasks] = useState([]);
           const [recommendations, setRecommendations] = useState(INITIAL_RECOMMENDATIONS);
           const [checklist, setChecklist] = useState(INITIAL_CHECKLIST);
-          const [shoppingList, setShoppingList] = useState([{ id: 'start-1', name: 'EVE 止痛藥', count: 1, note: '代購', checked: false }]);
-          const [expenses, setExpenses] = useState([{ id: 'ex-1', title: '午餐', amount: 1200, payer: '媽媽' }, { id: 'ex-2', title: '飲料', amount: 150, payer: '弟弟' }]);
+          const [shoppingList, setShoppingList] = useState([]); // Default empty
+          const [expenses, setExpenses] = useState([]); // Default empty
 
           const [user, setUser] = useState(null);
           const [isDbLoaded, setIsDbLoaded] = useState(false);
@@ -501,10 +503,10 @@
 
             const dataKeys = [
                 { key: 'itinerary', setter: setItinerary, initial: INITIAL_ITINERARY },
-                { key: 'shopping', setter: setShoppingList, initial: shoppingList },
+                { key: 'shopping', setter: setShoppingList, initial: [] }, // Empty default
                 { key: 'recommendations', setter: setRecommendations, initial: INITIAL_RECOMMENDATIONS },
                 { key: 'checklist', setter: setChecklist, initial: INITIAL_CHECKLIST },
-                { key: 'expenses', setter: setExpenses, initial: expenses },
+                { key: 'expenses', setter: setExpenses, initial: [] }, // Empty default
                 { key: 'completedTasks', setter: setCompletedTasks, initial: [] }
             ];
 
@@ -594,7 +596,6 @@
           const incrementItem = (id, d) => setShoppingList(p => p.map(i => i.id === id ? { ...i, count: Math.max(1, (i.count||1)+d) } : i));
           const addToShoppingList = (item) => setShoppingList(p => [...p, { id: `rec-${Date.now()}`, name: item.name, checked: false, note: item.desc, count: 1 }]);
           
-          // Add Shopping Item
           const handleAddNewShoppingItem = async (e) => { 
               e.preventDefault(); 
               if(!newShopItem.name) return; 
@@ -731,12 +732,7 @@
               {addShopModal.show && (<div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center sm:p-4"><form onSubmit={handleAddNewShoppingItem} className="bg-white rounded-t-xl sm:rounded-xl border-2 border-[#492540] p-5 w-full max-w-md shadow-xl animate-slide-up"><div className="flex justify-between items-center mb-4"><h3 className="font-black text-lg text-[#c03546]">新增購物清單</h3><button type="button" onClick={() => setAddShopModal({show:false})}><X/></button></div><div className="space-y-3"><div><label className="text-xs font-bold text-gray-500">商品名稱</label><input name="name" value={newShopItem.name} onChange={e=>setNewShopItem({...newShopItem, name: e.target.value})} placeholder="e.g. EVE止痛藥" className="w-full p-3 border-2 border-gray-300 rounded-xl font-bold bg-white text-black" autoFocus required/></div><div><label className="text-xs font-bold text-gray-500">備註 (規格/口味)</label><input name="note" value={newShopItem.note} onChange={e=>setNewShopItem({...newShopItem, note: e.target.value})} placeholder="e.g. 藍色包裝" className="w-full p-3 border-2 border-gray-300 rounded-xl font-bold bg-white text-black"/></div><div><label className="text-xs font-bold text-gray-500">數量</label><input name="count" type="number" value={newShopItem.count} onChange={e=>setNewShopItem({...newShopItem, count: e.target.value})} defaultValue="1" className="w-full p-3 border-2 border-gray-300 rounded-xl font-bold bg-white text-black"/></div></div><button type="submit" className="w-full bg-[#c03546] text-white py-3 rounded-lg font-bold mt-4 shadow-[2px_2px_0px_0px_#000] active:translate-y-[1px] active:shadow-none flex justify-center">確認新增</button></form></div>)}
               {addCheckModal.show && (<div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center sm:p-4"><form onSubmit={addChecklistItem} className="bg-white rounded-t-xl sm:rounded-xl border-2 border-[#492540] p-5 w-full max-w-md shadow-xl animate-slide-up"><div className="flex justify-between items-center mb-4"><h3 className="font-black text-lg text-[#c03546]">新增檢查項目</h3><button type="button" onClick={() => setAddCheckModal({show:false})}><X/></button></div><div className="space-y-3"><div><label className="text-xs font-bold text-gray-500">項目名稱</label><input name="text" placeholder="e.g. 轉接頭" className="w-full p-3 border-2 border-gray-300 rounded-xl font-bold bg-white text-black" autoFocus required/></div></div><button type="submit" className="w-full bg-[#c03546] text-white py-3 rounded-lg font-bold mt-4 shadow-[2px_2px_0px_0px_#000] active:translate-y-[1px] active:shadow-none">確認新增</button></form></div>)}
               {addExpenseModal.show && (<div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center sm:p-4"><form onSubmit={handleAddExpense} className="bg-white rounded-t-xl sm:rounded-xl border-2 border-[#492540] p-5 w-full max-w-md shadow-xl animate-slide-up"><div className="flex justify-between items-center mb-4"><h3 className="font-black text-lg text-[#00A3E0]">新增消費紀錄</h3><button type="button" onClick={() => setAddExpenseModal({show:false})}><X/></button></div><div className="space-y-3"><div><label className="text-xs font-bold text-gray-500">項目</label><input name="title" value={newExpense.title} onChange={e=>setNewExpense({...newExpense, title: e.target.value})} placeholder="e.g. 章魚燒" className="w-full p-3 border-2 border-gray-300 rounded-xl font-bold bg-white text-black" autoFocus required/></div><div><label className="text-xs font-bold text-gray-500">金額 (日幣)</label><input name="amount" value={newExpense.amount} onChange={e=>setNewExpense({...newExpense, amount: e.target.value})} type="number" placeholder="e.g. 800" className="w-full p-3 border-2 border-gray-300 rounded-xl font-bold bg-white text-black" required/></div><div><label className="text-xs font-bold text-gray-500">付款人</label><select name="payer" value={newExpense.payer} onChange={e=>setNewExpense({...newExpense, payer: e.target.value})} className="w-full p-3 border-2 border-gray-300 rounded-xl font-bold bg-white text-black">{PAYERS.map(p => <option key={p} value={p}>{p}</option>)}</select></div></div><button type="submit" className="w-full bg-[#00A3E0] text-white py-3 rounded-lg font-bold mt-4 shadow-[2px_2px_0px_0px_#000] active:translate-y-[1px] active:shadow-none flex justify-center">記帳</button></form></div>)}
-              {showSyncModal && (<div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"><div className="bg-white rounded-xl border-2 border-[#492540] p-5 w-full max-w-xs shadow-xl animate-bounce-slight"><h3 className="font-black text-lg mb-2 text-[#00A3E0] flex items-center gap-2"><Users size={20}/> 旅程設定</h3><div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200"><label className="text-xs font-bold text-gray-500 mb-1 block flex items-center gap-1"><User size={12}/> 您是哪位成員？</label><select className="w-full p-2 border border-gray-300 rounded font-bold text-black text-sm" value={myIdentity} onChange={(e) => handleSetIdentity(e.target.value)}><option value="">請選擇...</option>{PAYERS.map(p => <option key={p} value={p}>{p}</option>)}</select></div><hr className="my-4 border-gray-200"/><p className="text-sm text-gray-600 mb-2 font-bold">旅程同步代碼</p>{tripId ? (<div className="space-y-3"><div className="bg-gray-100 p-2 rounded text-center font-mono font-bold text-xl tracking-widest border border-gray-300">{tripId}</div><button onClick={handleLeaveTrip} className="w-full py-2 rounded font-bold bg-[#c03546] text-white flex items-center justify-center gap-1"><LogOut size={16}/> 退出同步模式</button><button onClick={() => setShowSyncModal(false)} className="w-full py-2 rounded font-bold bg-gray-200 text-gray-600">關閉</button></div>) : (<div className="space-y-3"><input type="text" placeholder="輸入代碼 (e.g. OSAKA2025)" className="w-full p-2 border-2 border-gray-300 rounded font-bold text-center uppercase text-black" value={syncInput} onChange={e => setSyncInput(e.target.value.toUpperCase())}/><button onClick={handleJoinTrip} className="w-full py-2 rounded font-bold bg-[#00A3E0] text-white">加入旅程</button><button onClick={() => setShowSyncModal(false)} className="w-full py-2 rounded font-bold bg-gray-200 text-gray-600">取消</button></div>)}
-              {/* ✅ 天氣預報連結 (已移至設定內) */}
-              <div className="mt-4 pt-4 border-t border-gray-200">
-                  <a href="https://tenki.jp/forecast/6/30/6200/27100/" target="_blank" className="w-full py-2 bg-blue-500 text-white rounded-lg font-bold text-xs flex items-center justify-center gap-2 hover:bg-blue-600 transition-colors"><ExternalLink size={14}/> 查看大阪未來天氣預報</a>
-              </div>
-              </div></div>)}
+              {showSyncModal && (<div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"><div className="bg-white rounded-xl border-2 border-[#492540] p-5 w-full max-w-xs shadow-xl animate-bounce-slight"><h3 className="font-black text-lg mb-2 text-[#00A3E0] flex items-center gap-2"><Users size={20}/> 旅程設定</h3><div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200"><label className="text-xs font-bold text-gray-500 mb-1 block flex items-center gap-1"><User size={12}/> 您是哪位成員？</label><select className="w-full p-2 border border-gray-300 rounded font-bold text-black text-sm" value={myIdentity} onChange={(e) => handleSetIdentity(e.target.value)}><option value="">請選擇...</option>{PAYERS.map(p => <option key={p} value={p}>{p}</option>)}</select></div><hr className="my-4 border-gray-200"/><p className="text-sm text-gray-600 mb-2 font-bold">旅程同步代碼</p>{tripId ? (<div className="space-y-3"><div className="bg-gray-100 p-2 rounded text-center font-mono font-bold text-xl tracking-widest border border-gray-300">{tripId}</div><button onClick={handleLeaveTrip} className="w-full py-2 rounded font-bold bg-[#c03546] text-white flex items-center justify-center gap-1"><LogOut size={16}/> 退出同步模式</button><button onClick={() => setShowSyncModal(false)} className="w-full py-2 rounded font-bold bg-gray-200 text-gray-600">關閉</button></div>) : (<div className="space-y-3"><input type="text" placeholder="輸入代碼 (e.g. OSAKA2025)" className="w-full p-2 border-2 border-gray-300 rounded font-bold text-center uppercase text-black" value={syncInput} onChange={e => setSyncInput(e.target.value.toUpperCase())}/><button onClick={handleJoinTrip} className="w-full py-2 rounded font-bold bg-[#00A3E0] text-white">加入旅程</button><button onClick={() => setShowSyncModal(false)} className="w-full py-2 rounded font-bold bg-gray-200 text-gray-600">取消</button></div>)}</div></div>)}
               {showEmergency && (<div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"><div className="bg-white rounded-xl border-2 border-red-500 p-5 w-full max-w-xs shadow-xl animate-bounce-slight"><div className="flex justify-between items-center mb-4"><h3 className="font-black text-lg text-red-600 flex items-center gap-2"><Siren size={24}/> 緊急聯絡</h3><button onClick={() => setShowEmergency(false)}><X/></button></div><div className="space-y-3"><a href="tel:110" className="block bg-gray-100 p-3 rounded-lg border border-gray-300 hover:bg-red-50"><div className="text-xl font-black text-red-600">110</div><div className="text-xs text-gray-500">警察局 (Police)</div></a><a href="tel:119" className="block bg-gray-100 p-3 rounded-lg border border-gray-300 hover:bg-red-50"><div className="text-xl font-black text-red-600">119</div><div className="text-xs text-gray-500">火警/救護車 (Fire/Ambulance)</div></a><a href="tel:+81-3-3280-7811" className="block bg-gray-100 p-3 rounded-lg border border-gray-300 hover:bg-red-50"><div className="text-sm font-black text-[#492540]">+81-3-3280-7811</div><div className="text-xs text-gray-500">台灣駐日代表處 (緊急聯絡)</div></a><div className="text-[10px] text-gray-400 mt-2 bg-yellow-50 p-2 rounded">💡 提示：日本報案可講簡單英文，或直接喊 "TAIWAN" 求助。</div></div></div></div>)}
               
               {/* Other Modals... */}
