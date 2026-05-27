@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>KANG's AI 工具庫</title>
+    <meta
+      name="description"
+      content="KANG's 精選 AI 工具入口，快速找到設計、社群文案、品牌策略與內容製作助手。"
+    />
+    <meta name="theme-color" content="#06283b" />
+    <meta property="og:title" content="KANG's AI 工具庫" />
+    <meta property="og:description" content="整理常用 AI 工具，依用途分類，讓工作流程更順手。" />
+    <meta property="og:type" content="website" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;600;700;900&family=Noto+Sans+TC:wght@400;500;700;900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="#top" aria-label="回到首頁">
+        <span class="brand-mark" aria-hidden="true">K</span>
+        <span>KANG's</span>
+      </a>
+      <nav class="site-nav" aria-label="主要導覽">
+        <a href="#tools">工具</a>
+        <a href="#categories">分類</a>
+      </nav>
+    </header>
+
+    <main id="top">
+      <section class="hero" aria-label="工具庫摘要">
+        <div class="hero-copy">
+          <p class="eyebrow">AI Tools Hub</p>
+        </div>
+        <div class="hero-panel" aria-label="工具庫摘要">
+          <span>精選工具</span>
+          <strong id="toolCount">0</strong>
+          <small>依用途分類整理，點開即可使用。</small>
+        </div>
+      </section>
+
+      <section class="tools-shell" id="tools" aria-labelledby="tools-title">
+        <div class="tools-head">
+          <div>
+            <p class="eyebrow">Tools</p>
+            <h2 id="tools-title">常用 AI 工具</h2>
+          </div>
+          <p>用分類或關鍵字快速篩選，找到最適合當下任務的助手。</p>
+        </div>
+
+        <div class="search-wrap">
+          <label for="toolSearch">搜尋工具</label>
+          <input id="toolSearch" type="search" placeholder="輸入設計、文案、品牌..." autocomplete="off" />
+        </div>
+
+        <div class="filter-row" id="filterRow" aria-label="工具分類篩選"></div>
+        <div class="tools-grid" id="toolsGrid"></div>
+      </section>
+
+      <section class="category-strip" id="categories" aria-label="工具分類">
+        <span>設計優化</span>
+        <span>社群文案</span>
+        <span>品牌策略</span>
+        <span>內容生成</span>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <span>KANG's</span>
+      <span>Curated AI tools.</span>
+    </footer>
+
+    <script src="script.js"></script>
+  </body>
+</html>
